@@ -67,6 +67,20 @@ export async function POST(request: Request) {
     published: true,
   };
 
+  function uniqueBySignature<T extends { prompt: string; options: string[]; type: QuestionType }>(
+    questions: T[]
+  ) {
+    const seen = new Set<string>();
+    const result: T[] = [];
+    for (const question of questions) {
+      const signature = `${question.type}|${question.prompt.trim()}|${question.options.join("|")}`;
+      if (seen.has(signature)) continue;
+      seen.add(signature);
+      result.push(question);
+    }
+    return result;
+  }
+
   type Question = Awaited<ReturnType<typeof prisma.question.findMany>>[number];
   const usedQuestionIds = new Set<string>();
   const sectionResults: Array<{
@@ -90,6 +104,7 @@ export async function POST(request: Request) {
       const allowed = new Set(section.topics);
       questions = questions.filter((question) => allowed.has(question.topic));
     }
+    questions = uniqueBySignature(questions);
     questions = questions.filter((question) => !usedQuestionIds.has(question.id));
     if (questions.length < section.questionCount) {
       return NextResponse.json(

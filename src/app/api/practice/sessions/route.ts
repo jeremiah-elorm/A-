@@ -55,6 +55,20 @@ function allocateMixedCounts(total: number, mcqAvailable: number, essayAvailable
   return { mcqCount, essayCount };
 }
 
+function uniqueBySignature<T extends { prompt: string; options: string[]; type: string }>(
+  questions: T[]
+) {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const question of questions) {
+    const signature = `${question.type}|${question.prompt.trim()}|${question.options.join("|")}`;
+    if (seen.has(signature)) continue;
+    seen.add(signature);
+    result.push(question);
+  }
+  return result;
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -85,30 +99,40 @@ export async function POST(request: Request) {
       const questions = await prisma.question.findMany({
         where: { ...baseFilter, type: "MCQ" },
       });
-      selected = selectQuestions({ questions, count, seed });
+      selected = selectQuestions({
+        questions: uniqueBySignature(questions),
+        count,
+        seed,
+      });
     } else if (payload.type === "essay") {
       const questions = await prisma.question.findMany({
         where: { ...baseFilter, type: "ESSAY" },
       });
-      selected = selectQuestions({ questions, count, seed });
+      selected = selectQuestions({
+        questions: uniqueBySignature(questions),
+        count,
+        seed,
+      });
     } else {
       const [mcq, essay] = await Promise.all([
         prisma.question.findMany({ where: { ...baseFilter, type: "MCQ" } }),
         prisma.question.findMany({ where: { ...baseFilter, type: "ESSAY" } }),
       ]);
-      const maxCount = Math.min(count, mcq.length + essay.length);
+      const uniqueMcq = uniqueBySignature(mcq);
+      const uniqueEssay = uniqueBySignature(essay);
+      const maxCount = Math.min(count, uniqueMcq.length + uniqueEssay.length);
       const { mcqCount, essayCount } = allocateMixedCounts(
         maxCount,
-        mcq.length,
-        essay.length
+        uniqueMcq.length,
+        uniqueEssay.length
       );
       const selectedMcq = selectQuestions({
-        questions: mcq,
+        questions: uniqueMcq,
         count: mcqCount,
         seed,
       });
       const selectedEssay = selectQuestions({
-        questions: essay,
+        questions: uniqueEssay,
         count: essayCount,
         seed: seed + 1,
       });
