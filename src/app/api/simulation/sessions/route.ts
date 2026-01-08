@@ -67,13 +67,15 @@ export async function POST(request: Request) {
     published: true,
   };
 
-  function uniqueBySignature<T extends { prompt: string; options: string[]; type: QuestionType }>(
-    questions: T[]
-  ) {
+  function normalizePrompt(prompt: string) {
+    return prompt.trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  function uniqueByPrompt<T extends { prompt: string; type: QuestionType }>(questions: T[]) {
     const seen = new Set<string>();
     const result: T[] = [];
     for (const question of questions) {
-      const signature = `${question.type}|${question.prompt.trim()}|${question.options.join("|")}`;
+      const signature = `${question.type}|${normalizePrompt(question.prompt)}`;
       if (seen.has(signature)) continue;
       seen.add(signature);
       result.push(question);
@@ -104,7 +106,7 @@ export async function POST(request: Request) {
       const allowed = new Set(section.topics);
       questions = questions.filter((question) => allowed.has(question.topic));
     }
-    questions = uniqueBySignature(questions);
+    questions = uniqueByPrompt(questions);
     questions = questions.filter((question) => !usedQuestionIds.has(question.id));
     if (questions.length < section.questionCount) {
       return NextResponse.json(

@@ -55,13 +55,15 @@ function allocateMixedCounts(total: number, mcqAvailable: number, essayAvailable
   return { mcqCount, essayCount };
 }
 
-function uniqueBySignature<T extends { prompt: string; options: string[]; type: string }>(
-  questions: T[]
-) {
+function normalizePrompt(prompt: string) {
+  return prompt.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function uniqueByPrompt<T extends { prompt: string; type: string }>(questions: T[]) {
   const seen = new Set<string>();
   const result: T[] = [];
   for (const question of questions) {
-    const signature = `${question.type}|${question.prompt.trim()}|${question.options.join("|")}`;
+    const signature = `${question.type}|${normalizePrompt(question.prompt)}`;
     if (seen.has(signature)) continue;
     seen.add(signature);
     result.push(question);
@@ -100,7 +102,7 @@ export async function POST(request: Request) {
         where: { ...baseFilter, type: "MCQ" },
       });
       selected = selectQuestions({
-        questions: uniqueBySignature(questions),
+        questions: uniqueByPrompt(questions),
         count,
         seed,
       });
@@ -109,7 +111,7 @@ export async function POST(request: Request) {
         where: { ...baseFilter, type: "ESSAY" },
       });
       selected = selectQuestions({
-        questions: uniqueBySignature(questions),
+        questions: uniqueByPrompt(questions),
         count,
         seed,
       });
@@ -118,8 +120,8 @@ export async function POST(request: Request) {
         prisma.question.findMany({ where: { ...baseFilter, type: "MCQ" } }),
         prisma.question.findMany({ where: { ...baseFilter, type: "ESSAY" } }),
       ]);
-      const uniqueMcq = uniqueBySignature(mcq);
-      const uniqueEssay = uniqueBySignature(essay);
+      const uniqueMcq = uniqueByPrompt(mcq);
+      const uniqueEssay = uniqueByPrompt(essay);
       const maxCount = Math.min(count, uniqueMcq.length + uniqueEssay.length);
       const { mcqCount, essayCount } = allocateMixedCounts(
         maxCount,
