@@ -56,135 +56,140 @@ function allocateMixedCounts(total: number, mcqAvailable: number, essayAvailable
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const parsed = sessionSchema.safeParse(body);
+  try {
+    const body = await request.json();
+    const parsed = sessionSchema.safeParse(body);
 
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid session payload." }, { status: 400 });
-  }
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid session payload." }, { status: 400 });
+    }
 
-  const payload = parsed.data;
-  const count = normalizeCount(payload.count);
-  const seed = randomInt32();
-  const anonymousId = payload.anonymousId ?? crypto.randomUUID();
+    const payload = parsed.data;
+    const count = normalizeCount(payload.count);
+    const seed = randomInt32();
+    const anonymousId = payload.anonymousId ?? crypto.randomUUID();
 
-  const baseFilter = {
-    exam: payload.exam,
-    subject: payload.subject,
-    published: true,
-    ...(payload.yearRange
-      ? { year: { gte: payload.yearRange.start, lte: payload.yearRange.end } }
-      : {}),
-    ...(payload.difficulty ? { difficulty: { in: payload.difficulty } } : {}),
-  } as const;
-
-  let selected = [];
-
-  if (payload.type === "mcq") {
-    const questions = await prisma.question.findMany({
-      where: { ...baseFilter, type: "MCQ" },
-    });
-    selected = selectQuestions({ questions, count, seed });
-  } else if (payload.type === "essay") {
-    const questions = await prisma.question.findMany({
-      where: { ...baseFilter, type: "ESSAY" },
-    });
-    selected = selectQuestions({ questions, count, seed });
-  } else {
-    const [mcq, essay] = await Promise.all([
-      prisma.question.findMany({ where: { ...baseFilter, type: "MCQ" } }),
-      prisma.question.findMany({ where: { ...baseFilter, type: "ESSAY" } }),
-    ]);
-    const maxCount = Math.min(count, mcq.length + essay.length);
-    const { mcqCount, essayCount } = allocateMixedCounts(
-      maxCount,
-      mcq.length,
-      essay.length
-    );
-    const selectedMcq = selectQuestions({
-      questions: mcq,
-      count: mcqCount,
-      seed,
-    });
-    const selectedEssay = selectQuestions({
-      questions: essay,
-      count: essayCount,
-      seed: seed + 1,
-    });
-    selected = selectQuestions({
-      questions: [...selectedMcq, ...selectedEssay],
-      count: maxCount,
-      seed: seed + 2,
-    });
-  }
-
-  if (selected.length === 0) {
-    return NextResponse.json(
-      { error: "No questions available for this selection." },
-      { status: 400 }
-    );
-  }
-
-  const startedAt = new Date();
-  const attempt = await prisma.attempt.create({
-    data: {
-      anonymousId,
+    const baseFilter = {
       exam: payload.exam,
       subject: payload.subject,
-      type:
-        payload.type === "mcq"
-          ? "MCQ"
-          : payload.type === "essay"
-          ? "ESSAY"
-          : "MIXED",
-      timed: payload.timed,
-      durationSec: payload.timed
-        ? Math.max(60, (payload.durationMinutes ?? 0) * 60)
-        : null,
-      startedAt,
-      seed,
-    },
-  });
+      published: true,
+      ...(payload.yearRange
+        ? { year: { gte: payload.yearRange.start, lte: payload.yearRange.end } }
+        : {}),
+      ...(payload.difficulty ? { difficulty: { in: payload.difficulty } } : {}),
+    } as const;
 
-  await prisma.attemptQuestion.createMany({
-    data: selected.map((question, index) => ({
-      attemptId: attempt.id,
-      questionId: question.id,
-      order: index,
-    })),
-  });
+    let selected = [];
 
-  await prisma.analyticsEvent.create({
-    data: {
-      name: "practice_session_created",
-      anonymousId,
-      attemptId: attempt.id,
-      metadata: {
+    if (payload.type === "mcq") {
+      const questions = await prisma.question.findMany({
+        where: { ...baseFilter, type: "MCQ" },
+      });
+      selected = selectQuestions({ questions, count, seed });
+    } else if (payload.type === "essay") {
+      const questions = await prisma.question.findMany({
+        where: { ...baseFilter, type: "ESSAY" },
+      });
+      selected = selectQuestions({ questions, count, seed });
+    } else {
+      const [mcq, essay] = await Promise.all([
+        prisma.question.findMany({ where: { ...baseFilter, type: "MCQ" } }),
+        prisma.question.findMany({ where: { ...baseFilter, type: "ESSAY" } }),
+      ]);
+      const maxCount = Math.min(count, mcq.length + essay.length);
+      const { mcqCount, essayCount } = allocateMixedCounts(
+        maxCount,
+        mcq.length,
+        essay.length
+      );
+      const selectedMcq = selectQuestions({
+        questions: mcq,
+        count: mcqCount,
+        seed,
+      });
+      const selectedEssay = selectQuestions({
+        questions: essay,
+        count: essayCount,
+        seed: seed + 1,
+      });
+      selected = selectQuestions({
+        questions: [...selectedMcq, ...selectedEssay],
+        count: maxCount,
+        seed: seed + 2,
+      });
+    }
+
+    if (selected.length === 0) {
+      return NextResponse.json(
+        { error: "No questions available for this selection." },
+        { status: 400 }
+      );
+    }
+
+    const startedAt = new Date();
+    const attempt = await prisma.attempt.create({
+      data: {
+        anonymousId,
         exam: payload.exam,
         subject: payload.subject,
-        type: payload.type,
+        type:
+          payload.type === "mcq"
+            ? "MCQ"
+            : payload.type === "essay"
+            ? "ESSAY"
+            : "MIXED",
         timed: payload.timed,
-        questionCount: selected.length,
+        durationSec: payload.timed
+          ? Math.max(60, (payload.durationMinutes ?? 0) * 60)
+          : null,
+        startedAt,
+        seed,
       },
-    },
-  });
+    });
 
-  const questions = selected.map((question) => ({
-    id: question.id,
-    type: question.type === "ESSAY" ? "essay" : "mcq",
-    prompt: question.prompt,
-    options: question.options,
-    topic: question.topic,
-    year: question.year,
-    imageUrl: question.imageUrl,
-    imageAlt: question.imageAlt,
-    imageCaption: question.imageCaption,
-  }));
+    await prisma.attemptQuestion.createMany({
+      data: selected.map((question, index) => ({
+        attemptId: attempt.id,
+        questionId: question.id,
+        order: index,
+      })),
+    });
 
-  return NextResponse.json({
-    attemptId: attempt.id,
-    anonymousId,
-    seed,
-    questions,
-  });
+    await prisma.analyticsEvent.create({
+      data: {
+        name: "practice_session_created",
+        anonymousId,
+        attemptId: attempt.id,
+        metadata: {
+          exam: payload.exam,
+          subject: payload.subject,
+          type: payload.type,
+          timed: payload.timed,
+          questionCount: selected.length,
+        },
+      },
+    });
+
+    const questions = selected.map((question) => ({
+      id: question.id,
+      type: question.type === "ESSAY" ? "essay" : "mcq",
+      prompt: question.prompt,
+      options: question.options,
+      topic: question.topic,
+      year: question.year,
+      imageUrl: question.imageUrl,
+      imageAlt: question.imageAlt,
+      imageCaption: question.imageCaption,
+    }));
+
+    return NextResponse.json({
+      attemptId: attempt.id,
+      anonymousId,
+      seed,
+      questions,
+    });
+  } catch (error) {
+    console.error("practice session error", error);
+    return NextResponse.json({ error: "Failed to create practice session." }, { status: 500 });
+  }
 }
