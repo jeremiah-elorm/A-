@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect width="640" height="360" fill="#f8fafc"/>
+  <line x1="320" y1="40" x2="320" y2="80" stroke="#0f172a" stroke-width="4"/>
+  <circle cx="320" cy="40" r="8" fill="#0f172a"/>
+  <path d="M140 90 Q320 20 500 90" fill="none" stroke="#94a3b8" stroke-width="2"/>
+  <line x1="320" y1="80" x2="260" y2="220" stroke="#0f172a" stroke-width="3"/>
+  <line x1="320" y1="80" x2="320" y2="230" stroke="#0f172a" stroke-width="3"/>
+  <line x1="320" y1="80" x2="380" y2="220" stroke="#0f172a" stroke-width="3"/>
+  <circle cx="260" cy="220" r="16" fill="#38bdf8" stroke="#0ea5e9" stroke-width="2"/>
+  <circle cx="320" cy="230" r="16" fill="#38bdf8" stroke="#0ea5e9" stroke-width="2"/>
+  <circle cx="380" cy="220" r="16" fill="#38bdf8" stroke="#0ea5e9" stroke-width="2"/>
+  <text x="248" y="215" font-size="16" fill="#0f172a">A</text>
+  <text x="312" y="225" font-size="16" fill="#0f172a">B</text>
+  <text x="372" y="215" font-size="16" fill="#0f172a">C</text>
+  <text x="320" y="320" font-size="14" fill="#475569">Pendulum positions</text>
+</svg>

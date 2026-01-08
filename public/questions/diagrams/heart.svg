@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect width="640" height="360" fill="#f8fafc"/>
+  <rect x="180" y="70" width="280" height="220" rx="24" fill="#fee2e2" stroke="#ef4444" stroke-width="3"/>
+  <circle cx="260" cy="140" r="40" fill="#fecaca" stroke="#ef4444" stroke-width="2"/>
+  <circle cx="380" cy="140" r="40" fill="#fecaca" stroke="#ef4444" stroke-width="2"/>
+  <rect x="260" y="190" width="120" height="70" rx="16" fill="#fca5a5" stroke="#ef4444" stroke-width="2"/>
+  <line x1="260" y1="70" x2="260" y2="30" stroke="#0f172a" stroke-width="3"/>
+  <line x1="380" y1="70" x2="380" y2="30" stroke="#0f172a" stroke-width="3"/>
+  <line x1="200" y1="200" x2="140" y2="240" stroke="#0f172a" stroke-width="3"/>
+  <line x1="440" y1="200" x2="500" y2="240" stroke="#0f172a" stroke-width="3"/>
+  <text x="250" y="20" font-size="16" fill="#0f172a">A</text>
+  <text x="370" y="20" font-size="16" fill="#0f172a">B</text>
+  <text x="120" y="260" font-size="16" fill="#0f172a">C</text>
+  <text x="510" y="260" font-size="16" fill="#0f172a">D</text>
+  <text x="260" y="320" font-size="14" fill="#475569">Simplified heart diagram</text>
+</svg>

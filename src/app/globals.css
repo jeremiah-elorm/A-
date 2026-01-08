@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --font-display: "Calibri", "Carlito", "Segoe UI", sans-serif;
+  --font-body: "Calibri", "Carlito", "Segoe UI", sans-serif;
+}
+
+body {
+  @apply bg-paper text-ink antialiased;
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+}
+
+main {
+  @apply min-h-screen;
+}
+
+button:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.fade-up {
+  opacity: 0;
+  animation: fade-up 700ms ease forwards;
+}
+
+.fade-up.delay-1 {
+  animation-delay: 120ms;
+}
+
+.fade-up.delay-2 {
+  animation-delay: 240ms;
+}
+
+.fade-up.delay-3 {
+  animation-delay: 360ms;
+}
+
+.float-slow {
+  animation: float-slow 6s ease-in-out infinite;
+}
+
+.shimmer {
+  background-size: 200% 200%;
+  animation: shimmer 8s ease-in-out infinite;
+}

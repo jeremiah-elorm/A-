@@ -1,0 +1,209 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ExamType {
+  BECE
+  WASSCE
+}
+
+enum QuestionType {
+  MCQ
+  ESSAY
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum SessionType {
+  MCQ
+  ESSAY
+  MIXED
+}
+
+enum AttemptMode {
+  PRACTICE
+  SIMULATION
+}
+
+enum ReminderFrequency {
+  DAILY
+  WEEKLY
+}
+
+model Question {
+  id           String       @id
+  exam         ExamType
+  subject      String
+  topic        String
+  year         Int
+  paper        String?
+  section      String?
+  difficulty   Difficulty
+  type         QuestionType
+  prompt       String
+  imageUrl     String?
+  imageAlt     String?
+  imageCaption String?
+  options      String[]
+  correctIndex Int?
+  explanation  String?
+  markingGuide String?
+  sampleAnswer String?
+  published    Boolean      @default(true)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  attemptQuestions AttemptQuestion[]
+  attemptResponses AttemptResponse[]
+
+  @@index([exam, subject, type, published])
+}
+
+model Attempt {
+  id           String      @id @default(cuid())
+  anonymousId  String
+  userId       String?
+  exam         ExamType
+  subject      String
+  type         SessionType
+  mode         AttemptMode @default(PRACTICE)
+  timed        Boolean
+  durationSec  Int?
+  startedAt    DateTime
+  submittedAt  DateTime?
+  seed         Int
+  scorePercent Int?
+  correctCount Int?
+  totalCount   Int?
+  topicBreakdown Json?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  questions   AttemptQuestion[]
+  responses   AttemptResponse[]
+  analyticsEvents AnalyticsEvent[]
+  sections    AttemptSection[]
+
+  @@index([anonymousId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model AttemptQuestion {
+  id         String   @id @default(cuid())
+  attemptId  String
+  questionId String
+  order      Int
+  sectionId  String?
+
+  attempt   Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question  Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  section   AttemptSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+
+  @@unique([attemptId, order])
+  @@unique([attemptId, questionId])
+  @@index([sectionId])
+}
+
+model AttemptResponse {
+  id           String   @id @default(cuid())
+  attemptId    String
+  questionId   String
+  selectedIndex Int?
+  essayResponse String?
+  isCorrect    Boolean?
+  flagged      Boolean?
+  createdAt    DateTime @default(now())
+
+  attempt   Attempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question  Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+}
+
+model AttemptSection {
+  id         String   @id @default(cuid())
+  attemptId  String
+  name       String
+  order      Int
+  durationSec Int?
+  startedAt  DateTime?
+  submittedAt DateTime?
+  scorePercent Int?
+  correctCount Int?
+  totalCount Int?
+  topicBreakdown Json?
+  createdAt  DateTime @default(now())
+
+  attempt Attempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questions AttemptQuestion[]
+
+  @@unique([attemptId, order])
+  @@index([attemptId])
+}
+
+model AnalyticsEvent {
+  id          String   @id @default(cuid())
+  name        String
+  anonymousId String?
+  attemptId   String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  attempt Attempt? @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+
+  @@index([name, createdAt])
+  @@index([anonymousId])
+  @@index([attemptId])
+}
+
+model SimulationConfig {
+  id        String   @id @default(cuid())
+  exam      ExamType
+  subject   String
+  label     String
+  sections  Json
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([exam, subject])
+  @@index([exam, subject, published])
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  reminderEnabled Boolean @default(false)
+  reminderFrequency ReminderFrequency @default(WEEKLY)
+  lastReminderAt DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions Session[]
+  attempts Attempt[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+}
