@@ -56,7 +56,11 @@ function allocateMixedCounts(total: number, mcqAvailable: number, essayAvailable
 }
 
 function normalizePrompt(prompt: string) {
-  return prompt.trim().toLowerCase().replace(/\s+/g, " ");
+  return prompt
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ");
 }
 
 function uniqueByPrompt<T extends { prompt: string; type: string }>(questions: T[]) {
