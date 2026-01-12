@@ -75,11 +75,11 @@ export async function POST(request: Request) {
       .replace(/\s+/g, " ");
   }
 
-  function uniqueByPrompt<T extends { prompt: string; type: QuestionType }>(questions: T[]) {
+  function uniqueByPrompt<T extends { prompt: string }>(questions: T[]) {
     const seen = new Set<string>();
     const result: T[] = [];
     for (const question of questions) {
-      const signature = `${question.type}|${normalizePrompt(question.prompt)}`;
+      const signature = normalizePrompt(question.prompt);
       if (seen.has(signature)) continue;
       seen.add(signature);
       result.push(question);
@@ -89,6 +89,7 @@ export async function POST(request: Request) {
 
   type Question = Awaited<ReturnType<typeof prisma.question.findMany>>[number];
   const usedQuestionIds = new Set<string>();
+  const usedPromptSignatures = new Set<string>();
   const sectionResults: Array<{
     config: (typeof config.sections)[number];
     selected: Question[];
@@ -111,7 +112,11 @@ export async function POST(request: Request) {
       questions = questions.filter((question) => allowed.has(question.topic));
     }
     questions = uniqueByPrompt(questions);
-    questions = questions.filter((question) => !usedQuestionIds.has(question.id));
+    questions = questions.filter((question) => {
+      if (usedQuestionIds.has(question.id)) return false;
+      const signature = normalizePrompt(question.prompt);
+      return !usedPromptSignatures.has(signature);
+    });
     if (questions.length < section.questionCount) {
       return NextResponse.json(
         { error: "Not enough questions to build the simulation." },
@@ -132,6 +137,7 @@ export async function POST(request: Request) {
     }
     for (const question of selected) {
       usedQuestionIds.add(question.id);
+      usedPromptSignatures.add(normalizePrompt(question.prompt));
     }
     sectionResults.push({ config: section, selected });
   }

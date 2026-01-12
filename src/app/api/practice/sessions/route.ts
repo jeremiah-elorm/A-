@@ -3,15 +3,6 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { selectQuestions } from "@/lib/test-engine";
 
-const yearRangeSchema = z
-  .object({
-    start: z.number().int().min(1900),
-    end: z.number().int().min(1900),
-  })
-  .refine((value) => value.start <= value.end, {
-    message: "Invalid year range.",
-  });
-
 const sessionSchema = z.object({
   exam: z.enum(["BECE", "WASSCE"]),
   subject: z.string().min(1),
@@ -20,8 +11,6 @@ const sessionSchema = z.object({
   timed: z.boolean(),
   durationMinutes: z.number().int().min(5).max(180).optional(),
   anonymousId: z.string().min(6).optional(),
-  yearRange: yearRangeSchema.optional(),
-  difficulty: z.array(z.enum(["EASY", "MEDIUM", "HARD"])).min(1).optional(),
 });
 
 function normalizeCount(value: number) {
@@ -63,11 +52,11 @@ function normalizePrompt(prompt: string) {
     .replace(/\s+/g, " ");
 }
 
-function uniqueByPrompt<T extends { prompt: string; type: string }>(questions: T[]) {
+function uniqueByPrompt<T extends { prompt: string }>(questions: T[]) {
   const seen = new Set<string>();
   const result: T[] = [];
   for (const question of questions) {
-    const signature = `${question.type}|${normalizePrompt(question.prompt)}`;
+    const signature = normalizePrompt(question.prompt);
     if (seen.has(signature)) continue;
     seen.add(signature);
     result.push(question);
@@ -93,10 +82,6 @@ export async function POST(request: Request) {
       exam: payload.exam,
       subject: payload.subject,
       published: true,
-      ...(payload.yearRange
-        ? { year: { gte: payload.yearRange.start, lte: payload.yearRange.end } }
-        : {}),
-      ...(payload.difficulty ? { difficulty: { in: payload.difficulty } } : {}),
     } as const;
 
     let selected = [];

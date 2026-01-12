@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getSessionUser } from "@/lib/session";
-import { formatDuration } from "@/lib/format";
 import { getRecommendations, getWeakTopics } from "@/lib/insights";
+import { formatDuration } from "@/lib/format";
 
 function formatDate(value: Date) {
   return value.toLocaleDateString("en-GB", {
@@ -231,8 +231,7 @@ export default async function DashboardPage() {
                     {attempt.exam} • {attempt.subject}
                   </p>
                   <p className="mt-1 text-base font-semibold text-slate-900">
-                    {attempt.type} •{" "}
-                    {attempt.timed ? "Timed" : "Untimed"}
+                    {attempt.type} • {attempt.timed ? "Timed" : "Untimed"}
                   </p>
                   {attempt.mode === "SIMULATION" && (
                     <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">

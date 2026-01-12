@@ -13,13 +13,6 @@ import {
 
 const COUNTS = [10, 15, 20];
 const DURATIONS = [15, 25, 35];
-const CURRENT_YEAR = new Date().getFullYear();
-const YEARS = Array.from({ length: 20 }, (_, index) => CURRENT_YEAR - index);
-const DIFFICULTIES = [
-  { id: "EASY", label: "Easy" },
-  { id: "MEDIUM", label: "Medium" },
-  { id: "HARD", label: "Hard" },
-] as const;
 
 export default function PracticeSetupPage() {
   const router = useRouter();
@@ -32,11 +25,6 @@ export default function PracticeSetupPage() {
   const [mode, setMode] = useState<"practice" | "simulation">("practice");
   const [timed, setTimed] = useState(true);
   const [durationMinutes, setDurationMinutes] = useState(DURATIONS[1]);
-  const [yearStart, setYearStart] = useState<number | null>(null);
-  const [yearEnd, setYearEnd] = useState<number | null>(null);
-  const [difficulty, setDifficulty] = useState<
-    Array<(typeof DIFFICULTIES)[number]["id"]>
-  >(DIFFICULTIES.map((option) => option.id));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -226,28 +214,6 @@ export default function PracticeSetupPage() {
         return;
       }
 
-      if ((yearStart === null) !== (yearEnd === null)) {
-        setError("Select both a start and end year.");
-        return;
-      }
-
-      if (yearStart !== null && yearEnd !== null && yearStart > yearEnd) {
-        setError("Start year cannot be after end year.");
-        return;
-      }
-
-      if (difficulty.length === 0) {
-        setError("Select at least one difficulty.");
-        return;
-      }
-
-      const yearRange =
-        yearStart !== null && yearEnd !== null
-          ? { start: yearStart, end: yearEnd }
-          : undefined;
-      const difficultyFilter =
-        difficulty.length === DIFFICULTIES.length ? undefined : difficulty;
-
       const response = await fetch("/api/practice/sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -259,8 +225,6 @@ export default function PracticeSetupPage() {
           timed,
           durationMinutes,
           anonymousId,
-          yearRange,
-          difficulty: difficultyFilter,
         }),
       });
 
@@ -478,41 +442,41 @@ export default function PracticeSetupPage() {
 
           {mode === "practice" && (
             <div className="space-y-2">
-            <label className="text-xs uppercase tracking-[0.2em] text-slate-500">
-              Question type
-            </label>
-            <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={() => setType("mcq")}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  type === "mcq" ? "bg-accent text-white" : "bg-sand text-slate-700"
-                }`}
-              >
-                MCQ
-              </button>
-              <button
-                type="button"
-                onClick={() => setType("essay")}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  type === "essay" ? "bg-accent text-white" : "bg-sand text-slate-700"
-                }`}
-              >
-                Essay
-              </button>
-              <button
-                type="button"
-                onClick={() => setType("mixed")}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  type === "mixed" ? "bg-accent text-white" : "bg-sand text-slate-700"
-                }`}
-              >
-                Mixed
-              </button>
-            </div>
-            <p className="text-xs text-slate-500">
-              Essay questions require self-assessment with sample answers.
-            </p>
+              <label className="text-xs uppercase tracking-[0.2em] text-slate-500">
+                Question type
+              </label>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setType("mcq")}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    type === "mcq" ? "bg-accent text-white" : "bg-sand text-slate-700"
+                  }`}
+                >
+                  MCQ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setType("essay")}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    type === "essay" ? "bg-accent text-white" : "bg-sand text-slate-700"
+                  }`}
+                >
+                  Essay
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setType("mixed")}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    type === "mixed" ? "bg-accent text-white" : "bg-sand text-slate-700"
+                  }`}
+                >
+                  Mixed
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Essay questions require self-assessment with sample answers.
+              </p>
             </div>
           )}
 
@@ -550,77 +514,6 @@ export default function PracticeSetupPage() {
             </div>
           )}
 
-          {mode === "practice" && (
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                Year range (optional)
-              </label>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <select
-                  value={yearStart ?? ""}
-                  onChange={(event) =>
-                    setYearStart(event.target.value ? Number(event.target.value) : null)
-                  }
-                  className="rounded-2xl border border-sand bg-transparent px-3 py-2 text-sm"
-                >
-                  <option value="">Start year</option>
-                  {YEARS.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={yearEnd ?? ""}
-                  onChange={(event) =>
-                    setYearEnd(event.target.value ? Number(event.target.value) : null)
-                  }
-                  className="rounded-2xl border border-sand bg-transparent px-3 py-2 text-sm"
-                >
-                  <option value="">End year</option>
-                  {YEARS.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          )}
-
-          {mode === "practice" && (
-            <div className="space-y-2">
-              <label className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                Difficulty mix
-              </label>
-              <div className="flex flex-wrap gap-3">
-                {DIFFICULTIES.map((option) => {
-                  const active = difficulty.includes(option.id);
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => {
-                        setDifficulty((current) =>
-                          current.includes(option.id)
-                            ? current.filter((value) => value !== option.id)
-                            : [...current, option.id]
-                        );
-                      }}
-                      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                        active ? "bg-accent text-white" : "bg-sand text-slate-700"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-slate-500">
-                Leave all selected to keep a balanced mix.
-              </p>
-            </div>
-          )}
           <button
             type="submit"
             className="w-full rounded-2xl bg-accent px-5 py-3 text-base font-semibold text-white shadow-card transition hover:-translate-y-0.5"

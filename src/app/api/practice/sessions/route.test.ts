@@ -39,7 +39,7 @@ describe("POST /api/practice/sessions", () => {
     mockSelectQuestions.mockReset();
   });
 
-  it("applies year range and difficulty filters when provided", async () => {
+  it("builds the base filter for the selected exam and subject", async () => {
     const question = {
       id: "q-1",
       type: "MCQ",
@@ -65,10 +65,9 @@ describe("POST /api/practice/sessions", () => {
         subject: "Math",
         count: 1,
         type: "mcq",
-        timed: false,
+        timed: true,
+        durationMinutes: 15,
         anonymousId: "anon-123456",
-        yearRange: { start: 2010, end: 2012 },
-        difficulty: ["EASY", "HARD"],
       }),
     });
 
@@ -80,8 +79,6 @@ describe("POST /api/practice/sessions", () => {
         exam: "BECE",
         subject: "Math",
         published: true,
-        year: { gte: 2010, lte: 2012 },
-        difficulty: { in: ["EASY", "HARD"] },
         type: "MCQ",
       },
     });
